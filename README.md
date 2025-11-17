@@ -4,8 +4,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17565578.svg)](https://doi.org/10.5281/zenodo.17565578)  
 **Autora:** Osmary Lisbeth Navarro Tovar  
 **Laboratorio:** Quantum Communication and Consciousness Laboratory  
-**Paper:** Enviado a arXiv (9 nov 2025) – ID pendiente  
-
+**Paper:** https://ccuantica.com/qlcm/
 ---
 
 ## 🔑 Resultados clave
