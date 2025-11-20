@@ -37,7 +37,7 @@ This project establishes a transdisciplinary bridge between science, art, and sp
 | File | Description | Function |
 | :--- | :--- | :--- |
 | `logon_auto_dimension.py` | **QLCM Core Class** | Defines the `QuantumLogonAutoDimension` class ($v_s, A_a, \varphi_i$). |
-| `coherencia_auto_dimension.py` | **Validation Module** | Calculates **Inter-Logon Correlation ($H_{IL}$)** and Semantic Coherence ($H_s$) using auto-dimensioned Bell tests on the `FakeLima` noise model. |
+| `coherencia.py` | **Validation Module** | Calculates **Inter-Logon Correlation ($H_{IL}$)** and Semantic Coherence ($H_s$) using auto-dimensioned Bell tests on the `FakeLima` noise model. |
 | `experimento.ipynb` | **Proof-of-Concept (PoC)** | Jupyter Notebook demonstrating Logon creation, $H_{IL}$ calculation under noise, and visualization. **This notebook is fully reproducible.** |
 | `requirements.txt` | Dependency List | Lists required Python packages. |
 
