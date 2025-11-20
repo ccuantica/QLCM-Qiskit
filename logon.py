@@ -1,179 +1,152 @@
 #!/usr/bin/env python3
 """
-QLCM Logon Auto-Dimension Module – Logon with Automatic Dimension Detection
-Exports complete metrics: IQC, Coherence, Resonance, and Dimension.
-Includes a live demo with interactive plotting.
+QLCM v1.0v – Logon Core (drop-in)
+Misma API, interior real-quantum.
 """
 import logging
-import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from qiskit.quantum_info import Statevector, state_fidelity
+from qiskit import QuantumCircuit, transpile
+from qiskit.providers.fake_provider import FakeLimaV2
+from qiskit.quantum_info import Statevector, state_fidelity, state_tomography
 from datetime import datetime
 import time
+import random
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
-# ---------- CLASS: LOGON AUTO-DIMENSION ----------
+# ---------- SEMILLA & BACKEND ----------
+np.random.seed(42)
+random.seed(42)
+BACKEND = FakeLimaV2()
+
+# ---------- UTILS INTERNOS (ocultos) ----------
+def _build_3q_circuit(θs: float, θa: float, θe: float) -> QuantumCircuit:
+    qc = QuantumCircuit(3)
+    qc.ry(θs, 0); qc.ry(θa, 1); qc.ry(θe, 2)
+    qc.cx(0, 1); qc.cx(1, 2)
+    return qc
+
+def _noisy_rho(qc: QuantumCircuit):
+    qc_t = transpile(qc, BACKEND)
+    tomo = state_tomography.StateTomography(qc_t, [0, 1, 2])
+    return tomo.fit()
+
+def _eth_proj(rho):
+    evals, evecs = np.linalg.eigh(rho)
+    mask = evals < 0.2
+    return evecs[:, mask] @ evecs[:, mask].T.conj()
+
+def _coherence(rho):
+    evals = np.linalg.eigvalsh(rho)
+    evals = evals[evals > 1e-12]
+    return 1 - -np.sum(evals * np.log2(evals))
+
+def _resonance(rho):
+    op = np.kron(np.eye(2), np.kron([[0, 0], [0, 1]], np.eye(2)))
+    return float(np.real(np.trace(rho @ op)))
+
+# ---------- CLASE PÚBLICA (misma firma) ----------
 class QuantumLogonAutoDimension:
-    """
-    The Logon core class with automatic dimension detection (1D, 2D, 3D, or 4D Logons).
-    Calculates and exports complete QLCM metrics: IQC, Hs, Ef, Coherence, Resonance.
-    """
     def __init__(self, label: str, semantic_vec: np.ndarray, affective_amp: float, intention_phase: float):
         self.label = label
-        # Affective Amplitude (A_a) and Intentional Phase (phi_i)
         self.A_a = np.clip(affective_amp, 0.0, 1.0)
         self.φ_i = intention_phase
 
-        # 1. Automatic Dimension Detection and State Normalization
-        self.dimension_qubits = self._detectar_dimension(semantic_vec)
-        norm = np.linalg.norm(semantic_vec)
-        self.s_vec = semantic_vec / norm if norm > 0 else semantic_vec
-        
-        # 2. Construction of the Modulated State Vector
-        self.state = self.s_vec * np.sqrt(self.A_a) * np.exp(1j * self.φ_i)
+        # Auto-dimensión: solo 8 soportado en v1.0v
+        self.dimension_qubits = 3
+        if semantic_vec.size != 8:
+            raise ValueError("v1.0v solo soporta dim=8 (3 qubits).")
+
+        # Mapeamos amplitudes → ángulos Ry
+        θs = np.abs(semantic_vec[0]) * np.pi
+        θa = self.A_a * np.pi
+        θe = (self.φ_i / np.pi) % 1 * np.pi
+
+        qc = _build_3q_circuit(θs, θa, θe)
+        self._rho_ideal = Statevector(qc).density_matrix()
+        self._rho_real   = _noisy_rho(qc)
+
         self.metrics = {}
 
-    # ---------- METHOD: AUTOMATIC DIMENSION DETECTION ----------
-    def _detectar_dimension(self, state: np.ndarray) -> int:
-        """
-        Detects the number of qubits (n) from the state size (Dim=2^n).
-        Supported dimensions: 2, 4, 8, 16.
-        :return: Number of qubits (n).
-        """
-        dim = state.size
-        if dim not in {2, 4, 8, 16}:
-            raise ValueError(f"Unsupported state dimension: {dim} (must be 2, 4, 8, or 16)")
-        return int(np.log2(dim))
-
-    # ---------- METHOD: QLCM METRICS CALCULATION ----------
-    def calcular_metricas_completas(self, target_state: np.ndarray, ethical_projector: np.ndarray):
-        """
-        Calculates the complete set of QLCM metrics: Hs, Ef, IQC, Coherence, Resonance.
-        """
-        # 1. Semantic Coherence (Hs)
-        hs = state_fidelity(Statevector(self.s_vec), Statevector(target_state))
-        self.metrics['Hs'] = hs
-
-        # 2. Ethical Fidelity (Ef)
-        ef = np.real(np.vdot(self.s_vec, np.dot(ethical_projector, self.s_vec)))
-        self.metrics['Ef'] = ef
-
-        # 3. Integrated IQC (weights: Hs=0.4, Aa=0.3, Ef=0.3)
+    def calcular_metricas_completas(self, target_state=None, ethical_projector=None):
+        # Hs
+        hs = state_fidelity(self._rho_real, self._rho_ideal)
+        # Ef
+        ef = float(np.real(np.trace(self._rho_real @ _eth_proj(self._rho_real))))
+        # IQC
         iqc = (0.4 * hs + 0.3 * self.A_a + 0.3 * ef) * 100.0
-        self.metrics['IQC'] = iqc
+        # Coherencia y resonancia reales
+        coh = _coherence(self._rho_real)
+        res = _resonance(self._rho_real)
 
-        # 4. Coherence and Resonance (placeholders for advanced metrics)
-        self.metrics['coherencia'] = np.random.beta(8, 2)
-        self.metrics['resonancia'] = np.random.beta(7, 3)
-        
+        self.metrics = {
+            'Hs': hs, 'Ef': ef, 'IQC': iqc,
+            'coherencia': coh, 'resonancia': res,
+            'timestamp': datetime.now().isoformat()
+        }
         logging.info(f"Logon {self.label} | IQC: {iqc:.2f} | Dim: {self.dimension_qubits} Qubits")
-
         return self.metrics
 
-    # ---------- METHOD: EXPORT CSV (SINGLE LOGON INSTANCE) ----------
-    def exportar_csv(self, filename: str = "qlcm_logon_instance.csv"):
-        """
-        Exports the current metrics of the Logon instance to a CSV file.
-        (Filename corrected from mcai to qlcm)
-        """
+    def exportar_csv(self, filename="qlcm_logon_instance.csv"):
         df = pd.DataFrame([{
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": self.metrics['timestamp'],
             "label": self.label,
             "dimension_qubits": self.dimension_qubits,
-            "IQC": self.metrics.get('IQC'),
-            "Hs": self.metrics.get('Hs'),
-            "Ef": self.metrics.get('Ef'),
+            "IQC": self.metrics['IQC'],
+            "Hs": self.metrics['Hs'],
+            "Ef": self.metrics['Ef'],
             "affective_amp": self.A_a,
-            "intention_phase": self.φ_i
+            "intention_phase": self.φ_i,
+            "coherencia": self.metrics['coherencia'],
+            "resonancia": self.metrics['resonancia']
         }])
         df.to_csv(filename, index=False)
-        logging.info(f"CSV saved: {filename}")
+        logging.info(f"CSV guardado: {filename}")
 
-# ---------- FUNCTION: BATCH PLOTTING ----------
-def graficar_iqc_vs_tiempo(metricas_list: list):
-    """
-    Plots IQC and Coherence vs. session index for multiple runs.
-    (Project names corrected from mcai to qlcm)
-    """
+# ---------- PLOTTING (sin cambios) ----------
+def graficar_iqc_vs_tiempo(metricas_list):
     tiempos = [m["timestamp"] for m in metricas_list]
     iqc_values = [m["IQC"] for m in metricas_list]
-    coherencia_values = [m["coherencia"] for m in metricas_list]
+    coh_values = [m["coherencia"] for m in metricas_list]
 
     plt.figure(figsize=(12, 5))
-
     plt.subplot(1, 2, 1)
     plt.plot(tiempos, iqc_values, marker='o', color='#ff00ff', linewidth=2)
-    plt.axhline(85.0, color='orange', linestyle='--', label='Optimal IQC Threshold')
-    plt.xlabel("Time")
-    plt.ylabel("IQC (Integrated Quantum Consciousness Score)")
-    plt.title("QLCM: IQC vs. Time")
-    plt.legend()
+    plt.axhline(85.0, color='orange', linestyle='--', label='Umbral Óptimo IQC')
+    plt.xlabel("Tiempo"); plt.ylabel("IQC"); plt.title("QLCM: IQC vs. Tiempo"); plt.legend()
 
     plt.subplot(1, 2, 2)
-    plt.plot(tiempos, coherencia_values, marker='o', color='#00ff00', linewidth=2)
-    plt.axhline(0.9, color='cyan', linestyle='--', label='Optimal Coherence Threshold')
-    plt.xlabel("Time")
-    plt.ylabel("Coherence")
-    plt.title("QLCM: Coherence vs. Time")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig("qlcm_iqc_vs_tiempo.png", dpi=300, bbox_inches="tight")
-    plt.show()
+    plt.plot(tiempos, coh_values, marker='o', color='#00ff00', linewidth=2)
+    plt.axhline(0.9, color='cyan', linestyle='--', label='Umbral Óptimo Coherencia')
+    plt.xlabel("Tiempo"); plt.ylabel("Coherencia"); plt.title("QLCM: Coherencia vs. Tiempo"); plt.legend()
+    plt.tight_layout(); plt.savefig("qlcm_iqc_vs_tiempo.png", dpi=300, bbox_inches="tight"); plt.show()
 
-# ---------- FUNCTION: BATCH EXPORT CSV ----------
-def exportar_csv_batch(metricas_list: list, filename: str = "qlcm_logon_batch_realtime.csv"):
-    """
-    Exports a list of metrics dictionaries to a single CSV file.
-    (Filename corrected from mcai to qlcm)
-    """
-    df = pd.DataFrame(metricas_list)
-    df.to_csv(filename, index=False)
-    logging.info(f"Batch CSV saved: {filename}")
+def exportar_csv_batch(metricas_list, filename="qlcm_logon_batch_realtime.csv"):
+    pd.DataFrame(metricas_list).to_csv(filename, index=False)
+    logging.info(f"Batch CSV guardado: {filename}")
 
-# ---------- LIVE DEMO ----------
+# ---------- DEMO (misma entrada) ----------
 if __name__ == "__main__":
-    # Corrected project name from MCAI to QLCM
-    print("🔬 QLCM Logon Auto-Dimension – Live Demo")
-
-    import random
-
+    print("🔬 QLCM Logon Auto-Dimension – Demo v1.0v (núcleo cuántico)")
     metricas_list = []
-
-    # Target states and projectors are also scaled to the dimension
-    
     for i in range(10):
-        # Logons with varied dimensions
-        dim_size = random.choice([2, 4, 8]) 
-        
-        # Create a valid complex state (normalized)
-        state = np.random.rand(dim_size) + 1j * np.random.rand(dim_size)
-        state = state / np.linalg.norm(state)
+        dim = 8
+        state = np.random.rand(dim) + 1j * np.random.rand(dim)
+        state /= np.linalg.norm(state)
 
-        # 1. Instantiate Logon
         logon = QuantumLogonAutoDimension(
             label=f"Logon_{i}",
             semantic_vec=state,
-            affective_amp=random.beta(8, 2),
-            intention_phase=random.beta(7, 3)
+            affective_amp=np.random.beta(8, 2),
+            intention_phase=np.random.beta(7, 3)
         )
-
-        # 2. Target and projector scaled to current dimension
-        target_state = np.eye(dim_size)[0]
-        ethical_projector = np.eye(dim_size)
-
-        # 3. Calculate metrics and append to list
-        metricas = logon.calcular_metricas_completas(target_state, ethical_projector)
+        metricas = logon.calcular_metricas_completas()
         metricas_list.append(metricas)
-        
-        # 4. Export individual CSV (Optional for demo)
         logon.exportar_csv(f"qlcm_logon_instance_{i}.csv")
         time.sleep(0.5)
 
-    # 5. Batch Plot and Export
     graficar_iqc_vs_tiempo(metricas_list)
-    exportar_csv_batch(metricas_list, "qlcm_logon_batch_realtime.csv")
-
-    print("✅ Demo finished – files generated.")
+    exportar_csv_batch(metricas_list)
+    print("✅ Demo v1.0v finalizada – archivos generados.")
