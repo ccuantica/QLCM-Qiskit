@@ -54,3 +54,27 @@ python -m venv qlcm-env
 source qlcm-env/bin/activate
 pip install -r requirements.txt
 jupyter lab experimento.ipynb
+
+
+📊 What does the notebook do?
+Creates 1D-2D-3D Logons with real quantum circuits
+Measures H<sub> via Swap-Test under FakeLima noise
+Exports qlcm_correlacion_auto_realtime.csv + qlcm_correlacion_vs_tiempo_auto.png
+Reproducible: seed 42 + pinned dependencies
+📝 Citation (BibTeX)
+bibtex
+Copy
+@software{navarro_tovar_qlcm-qiskit_2025,
+  author       = {Navarro Tovar, Osmary Lisbeth},
+  title        = {{QLCM-Qiskit: Quantum Language \& Consciousness Model v1.0v}},
+  month        = nov,
+  year         = {2025},
+  publisher    = {Zenodo},
+  version      = {v1.0v},
+  doi          = {10.5281/zenodo.17565578},
+  url          = {https://doi.org/10.5281/zenodo.17565578},
+  note         = {MIT License}
+}
+🔓 License
+MIT © 2025 Osmary Lisbeth Navarro Tovar
+Use it, modify it, cite it.
