@@ -1,4 +1,7 @@
+# QLCM Framework Dependencies
 qiskit==1.2.4
 qiskit-aer==0.15.1
+qiskit-ibm-runtime>=0.23.0  # Required for FakeLima backend/noise model
 numpy
+pandas
 matplotlib
