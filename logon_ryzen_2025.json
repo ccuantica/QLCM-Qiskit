@@ -1,0 +1,8 @@
+{
+  "backend": "AerSimulator-Statevector-CPU-Ryzen7-5700U",
+  "shots": 8192,
+  "Ef": 0.8037,
+  "time_s": 0.272,
+  "threads": 16,
+  "hash": "1402a8a58348eed6"
+}
