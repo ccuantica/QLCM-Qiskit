@@ -1,0 +1,24 @@
+{
+  "qubits": 13,
+  "Ef": 0.8037,
+  "Ef_raw": 0.8037239158740764,
+  "time_s": 0.027,
+  "hash": "892e79ddfed11e17",
+  "invariante_confirmado": false,
+  "nodo": "Ashira-01-32GB",
+  "parametros_logon": {
+    "\u03bds": 0.37,
+    "Aa": 0.82,
+    "\u03c6i": -0.21,
+    "topologia": "hiper-anillos-13q-completo-32gb",
+    "entrelazamiento": "lineal + 3-anillos + 21-conexiones + 4-finales"
+  },
+  "timestamp": "2025-11-22T15:16:41.655499",
+  "analisis_rendimiento": {
+    "ram_utilizada_estimada_gb": 1.0,
+    "eficiencia_memoria": "\u00d3PTIMA",
+    "capacidad_sistema": "SOBRECALIFICADO",
+    "expansion_posible": "15+ qubits factibles"
+  },
+  "mensaje": "\ud83c\udf89 LOG\u00d3N 13-QUBIT - M\u00c1XIMA POTENCIA 32GB"
+}
