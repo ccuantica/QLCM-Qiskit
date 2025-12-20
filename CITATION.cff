@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Navarro Tovar"
+  given-names: "Osmary Lisbeth"
+  affiliation: "CCUANTICA - Quantum Communication and Consciousness Laboratory"
+title: "QLCM-Qiskit: QLCM v1.0 – Experimental Implementation on IBM Quantum"
+version: "1.0.0"
+doi: "10.5281/zenodo.17565578"
+date-released: 2025-11-09
+url: "https://github.com/ccuantica/QLCM-Qiskit"
+repository-code: "https://github.com/ccuantica/QLCM-Qiskit"
+keywords:
+  - "Quantum Language"
+  - "Qiskit"
+  - "Quantum Consciousness"
+  - "Logon"
+  - "Semantic Fidelity"
+license: MIT
